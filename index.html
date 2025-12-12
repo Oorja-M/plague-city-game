@@ -1,0 +1,2628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Plague City: London, 1349</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Georgia", serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, #6b1f24 0, #3a060b 38%, #050003 100%);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px 12px;
+      color: #f4eddc;
+    }
+
+    #game {
+      max-width: 1140px;
+      width: 100%;
+      background: radial-gradient(circle at top left, #f1e6c6, #dac6a1);
+      border-radius: 20px;
+      border: 4px solid #3f2830;
+      box-shadow:
+        0 18px 40px rgba(0,0,0,0.7),
+        0 0 0 6px rgba(146, 104, 69, 0.7);
+      padding: 18px 20px 18px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+      color: #301b15;
+    }
+
+    #game::before,
+    #game::after {
+      content: "";
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border: 3px solid rgba(146, 104, 69, 0.7);
+      border-radius: 80% 50% 90% 40%;
+      opacity: 0.45;
+      pointer-events: none;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.25), transparent);
+    }
+
+    #game::before {
+      top: -35px;
+      left: -30px;
+    }
+
+    #game::after {
+      bottom: -35px;
+      right: -30px;
+      transform: scaleX(-1);
+    }
+
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 2px;
+    }
+
+    #title {
+      font-size: 28px;
+      letter-spacing: 0.12em;
+      color: #6d1f24;
+      text-shadow: 0 2px 0 #f4ead3, 0 0 10px rgba(155,36,46,0.5);
+      text-transform: uppercase;
+    }
+
+    #title::first-letter {
+      font-size: 32px;
+      color: #b4323c;
+    }
+
+    #day-display {
+      font-size: 17px;
+      color: #4a2f1d;
+    }
+
+    /* Header right side (day + instructions button) */
+    #header-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .header-btn{
+      background: #fbf3de;
+      border-radius: 10px;
+      border: 1px solid #7d5a38;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+      color:#3b2818;
+      white-space: nowrap;
+    }
+
+    .header-btn:hover{
+      background:#fff8e8;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+    }
+
+    #main-row {
+      display: grid;
+      grid-template-columns: 270px minmax(320px, 1.1fr) 270px;
+      gap: 12px;
+      min-height: 350px;
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, #f7eed6, #e1ccaa);
+      border-radius: 15px;
+      border: 2px solid #6b4235;
+      padding: 10px 11px;
+      position: relative;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.18);
+    }
+
+    .panel h2 {
+      font-size: 17px;
+      margin-bottom: 4px;
+      color: #3a2314;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .panel h2::first-letter {
+      font-size: 21px;
+      color: #8c262a;
+    }
+
+    #stats-panel h3 {
+      font-size: 15px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      color: #4d311d;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .stat-line {
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .bar-block {
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+
+    .bar-label {
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .bar-bg {
+      width: 100%;
+      height: 12px;
+      border-radius: 7px;
+      background: #c2b197;
+      margin-bottom: 4px;
+      overflow: hidden;
+      border: 1px solid #7d6245;
+      position: relative;
+    }
+
+    .bar-fill {
+      display: block;
+      height: 100%;
+      border-radius: 7px;
+      transition: width 0.3s ease-out;
+    }
+
+    .fear-bar { background: linear-gradient(90deg, #641015, #b7333d); }
+    .church-bar { background: linear-gradient(90deg, #1e3a7c, #4a76d3); }
+    .order-bar { background: linear-gradient(90deg, #1a5c32, #43a863); }
+    .justice-bar { background: linear-gradient(90deg, #5b2177, #a445d1); }
+    .patronage-bar { background: linear-gradient(90deg, #b38b00, #f4d35e); }
+
+    #mood-summary,
+    #power-summary,
+    #whispers {
+      font-size: 13px;
+    }
+
+    #whispers {
+      color: #5c3a25;
+      font-style: italic;
+    }
+
+    #center-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #city-placeholder {
+      height: 150px;
+      border-radius: 12px;
+      border: 1px solid #6b4a2e;
+      background:
+        radial-gradient(circle at center, #f6efd9 0, #e3cfaa 55%, #cfb48b 100%);
+      margin-top: 3px;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        inset 0 4px 6px rgba(255,255,255,0.4),
+        inset 0 -4px 6px rgba(0,0,0,0.25);
+    }
+
+    .city-ring {
+      position: absolute;
+      inset: 12px;
+      border-radius: 50%;
+      border: 2px solid #7b4a2f;
+      background: radial-gradient(circle at center, #fef6dd 10%, #e9d4aa 60%, #c6a57a 100%);
+      box-shadow:
+        0 0 4px rgba(0,0,0,0.4),
+        inset 0 0 6px rgba(255,255,255,0.5);
+    }
+
+    .city-core {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 46px;
+      height: 46px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle at top, #f9f1da, #e1c79d);
+      border: 2px solid #5f3a26;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
+    }
+
+    .city-core::before {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: 50%;
+      border: 1px dashed rgba(84,47,29,0.7);
+    }
+
+    .city-zone {
+      position: absolute;
+      border-radius: 10px;
+      border: 1px solid rgba(81, 46, 27, 0.8);
+      background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(225,197,148,0.9));
+      box-shadow:
+        inset 0 0 3px rgba(255,255,255,0.7),
+        0 1px 3px rgba(0,0,0,0.3);
+      font-size: 9px;
+      text-align: center;
+      padding-top: 3px;
+      color: #4c2e1a;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      pointer-events: none;
+      opacity: 0.95;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+
+    .zone-market {
+      width: 32%;
+      height: 28%;
+      left: 9%;
+      top: 46%;
+      transform: translateY(-50%);
+    }
+
+    .zone-cathedral {
+      width: 32%;
+      height: 28%;
+      right: 9%;
+      top: 46%;
+      transform: translateY(-50%);
+    }
+
+    .zone-outskirts {
+      width: 30%;
+      height: 28%;
+      left: 50%;
+      top: 8%;
+      transform: translateX(-50%);
+    }
+
+    .city-zone::before {
+      content: "";
+      position: absolute;
+      bottom: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(115,51,22,0.85), rgba(191,132,75,0.4));
+    }
+
+    .city-zone.focused {
+      border-color: #b7333d;
+      box-shadow:
+        0 0 0 2px rgba(183,51,61,0.4),
+        0 0 10px rgba(183,51,61,0.7);
+      transform: scale(1.05);
+      z-index: 3;
+    }
+
+    .zone-market.focused { transform: translateY(-50%) scale(1.05) translateX(1px); }
+    .zone-cathedral.focused { transform: translateY(-50%) scale(1.05) translateX(-1px); }
+    .zone-outskirts.focused { transform: translateX(-50%) translateY(-1px) scale(1.05); }
+
+    .city-road {
+      position: absolute;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(120,88,53,0.8),
+        rgba(120,88,53,0.8) 2px,
+        rgba(205,171,120,0.8) 4px
+      );
+      opacity: 0.85;
+      border-radius: 999px;
+    }
+
+    .road-north {
+      width: 12px;
+      height: 70%;
+      left: 50%;
+      top: 15%;
+      transform: translateX(-50%);
+    }
+
+    .road-east {
+      width: 50%;
+      height: 10px;
+      top: 52%;
+      right: 8%;
+      transform: translateY(-50%);
+    }
+
+    .road-west {
+      width: 50%;
+      height: 10px;
+      top: 52%;
+      left: 8%;
+      transform: translateY(-50%);
+    }
+
+    .city-gate {
+      position: absolute;
+      width: 10px;
+      height: 16px;
+      border-radius: 3px 3px 0 0;
+      background: linear-gradient(to top, #4a2a17, #7b4c2d);
+      border: 1px solid #2d190f;
+      box-shadow: 0 0 3px rgba(0,0,0,0.5);
+    }
+
+    .gate-south {
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .gate-west {
+      left: -1px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: 0 3px 3px 0;
+    }
+
+    .gate-east {
+      right: -1px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: 3px 0 0 3px;
+    }
+
+    .city-plague {
+      position: absolute;
+      width: 70px;
+      height: 40px;
+      border-radius: 40px;
+      background: radial-gradient(circle at 30% 40%, rgba(225,230,177,0.7), rgba(105,105,70,0.0));
+      opacity: 0.65;
+      mix-blend-mode: multiply;
+      animation: miasma-drift 6s infinite alternate ease-in-out;
+    }
+
+    .cloud-1 { left: 10%; top: 12%; animation-delay: -1.2s; }
+    .cloud-2 { left: 50%; top: 65%; transform: translateX(-50%); animation-delay: -3.4s; }
+    .cloud-3 { right: 10%; top: 25%; animation-delay: -2s; }
+
+    @keyframes miasma-drift {
+      0% { transform: translate(0,0) scale(1); opacity: 0.5; }
+      50% { transform: translate(4px,-3px) scale(1.05); opacity: 0.7; }
+      100% { transform: translate(-3px,2px) scale(0.95); opacity: 0.45; }
+    }
+
+    #tooltip {
+      margin-top: 6px;
+      font-size: 13px;
+      min-height: 34px;
+      padding: 5px 8px;
+      border-radius: 9px;
+      background: #f4e7c8;
+      border: 1px dashed #8a6a46;
+      color: #3b2818;
+      white-space: pre-wrap;
+      box-shadow: inset 0 0 3px rgba(0,0,0,0.15);
+    }
+
+    #districts {
+      margin-top: 6px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .district-card {
+      background: radial-gradient(circle at top left, #fdf4dd, #f1e0be);
+      border-radius: 12px;
+      border: 1px solid #7b5a3f;
+      padding: 6px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s, background 0.12s;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.28),
+        inset 0 0 2px rgba(255,255,255,0.6);
+    }
+
+    .district-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      background: #fff5dc;
+    }
+
+    .district-card.selected {
+      border-color: #9a3c32;
+      box-shadow: 0 0 0 2px rgba(154,60,50,0.5);
+      background: #fcebd2;
+    }
+
+    .district-name {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 2px;
+      color: #4a2c18;
+    }
+
+    .district-lines { margin-top: 2px; }
+
+    .district-line-label {
+      font-size: 11px;
+      color: #5a3a23;
+      margin-bottom: 1px;
+    }
+
+    .district-meter-bg {
+      width: 100%;
+      height: 8px;
+      border-radius: 5px;
+      background: #c7b69a;
+      border: 1px solid #7b5a3f;
+      overflow: hidden;
+      margin-bottom: 3px;
+      position: relative;
+    }
+
+    .district-meter-fill {
+      display: block;
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.25s ease-out;
+    }
+
+    .district-meter-plague {
+      background: linear-gradient(90deg, #6b1a1a, #c53935, #f5b56b);
+    }
+
+    .district-meter-unrest {
+      background: linear-gradient(90deg, #4a2a16, #ce7a28, #f0d38c);
+    }
+
+    #treatments-wrapper {
+      margin-top: 8px;
+    }
+
+    #treatments-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #4a2c18;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+    }
+
+    #treatments {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .treatment-card {
+      background: radial-gradient(circle at top left, #fcf3dd, #eddab7);
+      border-radius: 10px;
+      border: 1px solid #7b5a3f;
+      padding: 5px 7px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s, background 0.12s;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.25),
+        inset 0 0 2px rgba(255,255,255,0.6);
+    }
+
+    .treatment-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.28);
+      background: #fff6de;
+    }
+
+    .treatment-card.selected {
+      border-color: #8c262a;
+      box-shadow: 0 0 0 2px rgba(140,38,42,0.5);
+      background: #faebd1;
+    }
+
+    .treatment-name {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 1px;
+      color: #4a2c18;
+    }
+
+    .treatment-note {
+      font-size: 10.5px;
+      color: #5b3a26;
+    }
+
+    #doctrine-panel {
+      margin-top: 8px;
+      padding: 6px 8px;
+      border-radius: 9px;
+      border: 1px solid #8a6a46;
+      background: #f2e3c3;
+      box-shadow: inset 0 0 3px rgba(0,0,0,0.15);
+      font-size: 11.5px;
+      color: #3b2818;
+      min-height: 60px;
+    }
+
+    #doctrine-heading {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #7a3b2a;
+      margin-bottom: 2px;
+    }
+
+    #doctrine-body {
+      white-space: pre-wrap;
+      line-height: 1.3;
+    }
+
+    #policy-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .policy-button {
+      background: #fbf3de;
+      border-radius: 10px;
+      border: 1px solid #7d5a38;
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+    }
+
+    .policy-button:hover {
+      background: #fff8e8;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+    }
+
+    .policy-button span {
+      font-size: 11.5px;
+      display: block;
+      color: #5a412b;
+      margin-top: 1px;
+    }
+
+    #event-panel {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+      background: rgba(0,0,0,0.18);
+    }
+
+    #event-card {
+      max-width: 440px;
+      background: #f7e7c9;
+      border-radius: 12px;
+      border: 2px solid #7b5032;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.45);
+      padding: 12px 14px 14px;
+    }
+
+    #event-title {
+      font-size: 19px;
+      color: #7b1c1c;
+      margin-bottom: 6px;
+    }
+
+    #event-text {
+      font-size: 14px;
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+    }
+
+    .event-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .event-btn {
+      background: #fdf5e2;
+      border-radius: 8px;
+      border: 1px solid #7b5f3d;
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .event-btn:hover {
+      background: #fff8e9;
+      transform: translateY(-1px);
+    }
+
+    #message-panel {
+      background: radial-gradient(circle at top left, #f5ead2, #e1cfad);
+      border-radius: 12px;
+      border: 2px solid #71543a;
+      padding: 8px 10px;
+      min-height: 76px;
+      font-size: 14px;
+      white-space: pre-wrap;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.22);
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.58);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #overlay-card {
+      max-width: 520px;
+      background: #f7e7c9;
+      border-radius: 12px;
+      border: 2px solid #7b5032;
+      padding: 14px 16px 16px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.45);
+      color: #301b15;
+    }
+
+    #overlay-card h2 {
+      font-size: 22px;
+      color: #7b1c1c;
+      margin-bottom: 8px;
+    }
+
+    #ending-text {
+      font-size: 14px;
+      white-space: pre-wrap;
+      margin-bottom: 10px;
+    }
+
+    #overlay-tip {
+      font-size: 13px;
+      color: #4a3624;
+    }
+
+    #end-day-btn {
+      margin-top: 4px;
+      background: #6b2030;
+      color: #fdf5e8;
+      border-radius: 10px;
+      border: 1px solid #4a1010;
+      padding: 7px 9px;
+      font-size: 14px;
+      cursor: pointer;
+      align-self: stretch;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    #end-day-btn:hover {
+      background: #91293e;
+    }
+
+    #start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 900;
+    }
+
+    #start-card {
+      max-width: 720px;
+      width: 95%;
+      background: #f7e7c9;
+      border-radius: 16px;
+      border: 2px solid #7b5032;
+      padding: 14px 16px 16px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.55);
+      color: #301b15;
+    }
+
+    #start-card h2 {
+      font-size: 22px;
+      margin-bottom: 6px;
+      color: #7b1c1c;
+    }
+
+    #start-card p {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    #role-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .role-card {
+      background: radial-gradient(circle at top left, #fcf3dd, #edd8b3);
+      border-radius: 12px;
+      border: 1px solid #7b5a3f;
+      padding: 8px 9px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s, background 0.12s;
+      box-shadow:
+        0 2px 5px rgba(0,0,0,0.3),
+        inset 0 0 2px rgba(255,255,255,0.7);
+    }
+
+    .role-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 7px rgba(0,0,0,0.35);
+      background: #fff5dd;
+      border-color: #8c262a;
+    }
+
+    .role-name {
+      font-weight: bold;
+      font-size: 15px;
+      margin-bottom: 2px;
+      color: #4a2c18;
+    }
+
+    .role-tagline {
+      font-size: 12px;
+      color: #7a4c2a;
+      margin-bottom: 4px;
+    }
+
+    .role-detail {
+      font-size: 12px;
+      color: #3b2818;
+      white-space: pre-wrap;
+    }
+
+    #start-hint {
+      font-size: 12px;
+      margin-top: 6px;
+      color: #5a3b24;
+    }
+
+    #instructions-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.75);
+      z-index: 2000;
+      padding: 18px;
+    }
+
+    #instructions-card{
+      max-width: 860px;
+      width: 96%;
+      background: #f7e7c9;
+      border-radius: 16px;
+      border: 2px solid #7b5032;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.55);
+      color: #301b15;
+      padding: 12px 14px 14px;
+      max-height: 86vh;
+      overflow: auto;
+    }
+
+    .instructions-top{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(123,80,50,0.35);
+      margin-bottom: 8px;
+    }
+
+    .instructions-top h2{
+      font-size: 22px;
+      color: #7b1c1c;
+    }
+
+    .instructions-x{
+      background: #fdf5e2;
+      border-radius: 10px;
+      border: 1px solid #7b5f3d;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .instructions-x:hover{
+      background:#fff8e9;
+      transform: translateY(-1px);
+    }
+
+    .instructions-body{
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .instructions-lede{
+      margin-bottom: 10px;
+      color: #3b2818;
+    }
+
+    .instructions-grid{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 760px){
+      .instructions-grid{ grid-template-columns: 1fr; }
+    }
+
+    .instructions-block{
+      background: radial-gradient(circle at top left, #fcf3dd, #edd8b3);
+      border-radius: 12px;
+      border: 1px solid #7b5a3f;
+      padding: 10px 10px;
+      box-shadow:
+        0 2px 5px rgba(0,0,0,0.22),
+        inset 0 0 2px rgba(255,255,255,0.7);
+    }
+
+    .instructions-block h3{
+      font-size: 14px;
+      color: #4a2c18;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .instructions-block p{
+      margin-bottom: 8px;
+      color: #3b2818;
+    }
+
+    .instructions-block ul{
+      margin-left: 16px;
+      margin-top: 6px;
+      color: #3b2818;
+    }
+
+    .instructions-block li{
+      margin-bottom: 6px;
+    }
+
+    .small{
+      font-size: 12.5px;
+      color: #5a3a23;
+      margin-bottom: 0;
+    }
+
+    .instructions-tip{
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(123,80,50,0.35);
+      color: #4a3624;
+      font-size: 13px;
+    }
+
+    .instructions-bottom{
+      display:flex;
+      justify-content: flex-end;
+      padding-top: 10px;
+    }
+
+    .instructions-btn{
+      background: #6b2030;
+      color: #fdf5e8;
+      border-radius: 10px;
+      border: 1px solid #4a1010;
+      padding: 7px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .instructions-btn:hover{
+      background:#91293e;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+  <div id="start-overlay">
+    <div id="start-card">
+      <h2>Plague City: London, 1349</h2>
+      <p>
+        The plague has come to London. Before the bells of the Cathedral begin to toll without ceasing,
+        decide <strong>who you are</strong> in this crisis.
+      </p>
+      <div id="role-grid">
+        <div class="role-card" data-role="physician">
+          <div class="role-name">University-Trained Physician</div>
+          <div class="role-tagline">Lectures at Paris, fees in coin, Latin on your tongue.</div>
+          <div class="role-detail">
+Studies in Galen and Avicenna; consulted by canons of the Cathedral and wealthy merchants along the marketplace. You begin with more money and favour from the Church, but London’s poor eye you warily.
+          </div>
+        </div>
+        <div class="role-card" data-role="surgeon">
+          <div class="role-name">Barber-Surgeon</div>
+          <div class="role-tagline">Razor, lancet, and steady hands in the market lanes.</div>
+          <div class="role-detail">
+You bleed, stitch, and set bones for craftsmen near the bridge and in marketplace stalls.
+Respected for practical skill; closer to the guildhalls than to the Cathedral.
+          </div>
+        </div>
+        <div class="role-card" data-role="healer">
+          <div class="role-name">Outskirts Healer</div>
+          <div class="role-tagline">Wise healer of the outskirts, with hedgerow simples.</div>
+          <div class="role-detail">
+You live in the outskirts beyond the busiest city streets, where fields and gardens still cling to the walls.
+The poor trust your herbs and charms; some priests mutter of superstition and worse under their breath.
+          </div>
+        </div>
+      </div>
+      <div id="start-hint">
+        Each role begins with different strengths and standing in London. Click a card to begin the game.
+      </div>
+    </div>
+  </div>
+
+  <div id="game">
+    <div id="header">
+      <div id="title">Plague City: London, 1349</div>
+
+      <div id="header-right">
+        <div id="day-display"></div>
+        <button id="instructionsBtn" class="header-btn" type="button" aria-haspopup="dialog" aria-controls="instructions-card">
+          Instructions
+        </button>
+      </div>
+    </div>
+
+    <div id="main-row">
+      <div id="stats-panel" class="panel">
+        <h2>City of London</h2>
+
+        <div class="stat-line" id="role-line"></div>
+        <div class="stat-line" id="role-traits"></div>
+
+        <h3>Population</h3>
+        <div class="stat-line" id="total-pop"></div>
+        <div class="stat-line" id="healthy"></div>
+        <div class="stat-line" id="sick"></div>
+        <div class="stat-line" id="dead"></div>
+
+        <h3 style="margin-top:6px;">Resources</h3>
+        <div class="stat-line" id="money"></div>
+        <div class="stat-line" id="herbs"></div>
+        <div class="stat-line" id="grain"></div>
+
+        <h3 style="margin-top:6px;">Mood & Power</h3>
+
+        <div class="bar-block">
+          <div class="bar-label" id="fear-label"></div>
+          <div class="bar-bg"><span class="bar-fill fear-bar" id="fear-bar"></span></div>
+        </div>
+
+        <div class="bar-block">
+          <div class="bar-label" id="church-label"></div>
+          <div class="bar-bg"><span class="bar-fill church-bar" id="church-bar"></span></div>
+        </div>
+
+        <div class="bar-block">
+          <div class="bar-label" id="order-label"></div>
+          <div class="bar-bg"><span class="bar-fill order-bar" id="order-bar"></span></div>
+        </div>
+
+        <div class="bar-block">
+          <div class="bar-label" id="justice-label"></div>
+          <div class="bar-bg"><span class="bar-fill justice-bar" id="justice-bar"></span></div>
+        </div>
+
+        <div class="bar-block">
+          <div class="bar-label" id="patronage-label"></div>
+          <div class="bar-bg"><span class="bar-fill patronage-bar" id="patronage-bar"></span></div>
+        </div>
+
+        <h3 style="margin-top:6px;">City Mood</h3>
+        <div class="stat-line" id="mood-summary"></div>
+        <div class="stat-line" id="power-summary"></div>
+        <div class="stat-line" id="whispers" style="margin-top:4px;"></div>
+      </div>
+
+      <div id="center-panel" class="panel">
+        <h2>London & Districts</h2>
+
+        <div id="city-placeholder">
+          <div class="city-ring">
+            <div class="city-core"></div>
+
+            <div class="city-zone zone-market">Market</div>
+            <div class="city-zone zone-cathedral">Cathedral</div>
+            <div class="city-zone zone-outskirts">Outskirts</div>
+
+            <div class="city-road road-north"></div>
+            <div class="city-road road-west"></div>
+            <div class="city-road road-east"></div>
+
+            <div class="city-gate gate-south"></div>
+            <div class="city-gate gate-west"></div>
+            <div class="city-gate gate-east"></div>
+
+            <div class="city-plague cloud-1"></div>
+            <div class="city-plague cloud-2"></div>
+            <div class="city-plague cloud-3"></div>
+          </div>
+        </div>
+
+        <div id="tooltip"></div>
+
+        <div id="districts"></div>
+
+        <div id="treatments-wrapper">
+          <div id="treatments-title">Treatment Approaches</div>
+          <div id="treatments"></div>
+
+          <div id="doctrine-panel">
+            <div id="doctrine-heading">Physician’s Notebook</div>
+            <div id="doctrine-body"></div>
+          </div>
+        </div>
+
+        <div id="event-panel">
+          <div id="event-card">
+            <div id="event-title">A City on Edge...</div>
+            <div id="event-text"></div>
+            <div class="event-buttons">
+              <button class="event-btn" id="btn-event-1"></button>
+              <button class="event-btn" id="btn-event-2"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="policy-panel" class="panel">
+        <h2>Policies</h2>
+
+        <button class="policy-button" id="btn-treat">
+          Treat the Sick
+          <span>Spend herbs and apply your chosen treatment approach in the focused district.</span>
+        </button>
+
+        <button class="policy-button" id="btn-quarantine">
+          Close Doors & Watch Lanes
+          <span>Post watches and keep households in the focused district indoors; slows contagion but stirs unrest and may anger clergy.</span>
+        </button>
+
+        <button class="policy-button" id="btn-fires">
+          Burn Aromatic Fires
+          <span>Light cleansing fires across London; uses coin, calms some nerves, and is said to sweeten the air.</span>
+        </button>
+
+        <button class="policy-button" id="btn-procession">
+          Organize Procession
+          <span>Order prayers and litanies, especially around Cathedral; pleases the Church, but crowds the streets dangerously.</span>
+        </button>
+
+        <button class="policy-button" id="btn-alms">
+          Almsgiving & Charity
+          <span>Spend money to help the poor in the focused district; calms fear and bolsters order.</span>
+        </button>
+
+        <button class="policy-button" id="btn-grain">
+          Bring Grain up the Thames
+          <span>Spend coin to import food by river and road; steadies unrest but brings travellers and their fleas.</span>
+        </button>
+
+        <button class="policy-button" id="btn-tax">
+          Levy Emergency Tax
+          <span>Squeeze the focused district for coin. High order yields more, but resentment and unrest grow.</span>
+        </button>
+
+        <button class="policy-button" id="btn-forage">
+          Send Foraging Parties
+          <span>Strip gardens and hedgerows for herbs—most fruitful in the Outskirts, but the work stirs plague.</span>
+        </button>
+
+        <button id="end-day-btn">
+          End the Day
+        </button>
+      </div>
+    </div>
+
+    <div id="message-panel"></div>
+  </div>
+
+  <div id="overlay">
+    <div id="overlay-card">
+      <h2>The Plague Recedes...</h2>
+      <div id="ending-text"></div>
+      <div id="overlay-tip">Reload the page to begin a new attempt.</div>
+    </div>
+  </div>
+
+  <div id="instructions-overlay" style="display:none;">
+    <div id="instructions-card" role="dialog" aria-modal="true" aria-labelledby="instructions-title" tabindex="-1">
+      <div class="instructions-top">
+        <h2 id="instructions-title">How to Play</h2>
+        <button id="instructions-close" class="instructions-x" type="button" aria-label="Close">✕</button>
+      </div>
+
+      <div class="instructions-body">
+        <p class="instructions-lede">
+          You are guiding London through the plague. Each day you focus a district, commit to an approach,
+          and choose policies. The city changes whether you act or not.
+        </p>
+
+        <div class="instructions-grid">
+          <div class="instructions-block">
+            <h3>1) Focus a District</h3>
+            <p>
+              Click a district card to focus it. Most policies and <strong>Treat the Sick</strong> apply to the
+              <strong>selected district</strong>.
+            </p>
+            <p class="small">
+              You’ll see the highlight on the map: Market, Cathedral, or the Outskirts.
+            </p>
+          </div>
+
+          <div class="instructions-block">
+            <h3>2) Choose an Approach</h3>
+            <p>
+              Under <strong>Treatment Approaches</strong>, pick the approach you’re leaning on.
+              Hover a card to see where it shines (or backfires).
+            </p>
+            <p class="small">
+              Your approach affects both daily spread and how effective treatment actions are.
+            </p>
+          </div>
+
+          <div class="instructions-block">
+            <h3>3) Use Policies</h3>
+            <p>
+              Policies are on the right. Hover them to remember the trade-off.
+              Some calm fear. Some reduce plague. Some buy order at a cost.
+            </p>
+          </div>
+
+          <div class="instructions-block">
+            <h3>4) End the Day</h3>
+            <p>
+              Click <strong>End the Day</strong> to advance time.
+              New sickness, deaths, whispers, and events may appear.
+            </p>
+          </div>
+        </div>
+
+        <div class="instructions-grid" style="margin-top:10px;">
+          <div class="instructions-block">
+            <h3>What the stats mean</h3>
+            <ul>
+              <li><strong>Fear</strong> -- panic in the streets. High fear erodes order.</li>
+              <li><strong>Church approval</strong> -- support from clergy and the Cathedral.</li>
+              <li><strong>Public order</strong> -- stability. If it collapses, you lose.</li>
+              <li><strong>Justice</strong> -- whether fear becomes cruelty and scapegoating.</li>
+              <li><strong>Patronage</strong> -- discreet aid from wealthy patrons (and pressure).</li>
+            </ul>
+          </div>
+
+          <div class="instructions-block">
+            <h3>How you “win”</h3>
+            <p>
+              Survive until <strong>Day 30</strong> without losing control of the city.
+              Your ending depends on deaths, justice, grain, and stability.
+            </p>
+            <p class="small">There isn’t one perfect run -- only trade-offs.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="instructions-bottom">
+        <button id="instructions-gotit" class="instructions-btn" type="button">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const instructions = {
+      overlay: null,
+      card: null,
+      openBtn: null,
+      closeBtn: null,
+      gotItBtn: null,
+      lastFocus: null,
+      OPEN_ON_LOAD: true
+    };
+
+    function openInstructions() {
+      if (!instructions.overlay) return;
+      instructions.lastFocus = document.activeElement;
+      instructions.overlay.style.display = "flex";
+      setTimeout(() => instructions.card && instructions.card.focus(), 0);
+    }
+
+    function closeInstructions() {
+      if (!instructions.overlay) return;
+      instructions.overlay.style.display = "none";
+      if (instructions.lastFocus && typeof instructions.lastFocus.focus === "function") {
+        instructions.lastFocus.focus();
+      }
+    }
+
+    function wireInstructionsUI() {
+      instructions.overlay = document.getElementById("instructions-overlay");
+      instructions.card = document.getElementById("instructions-card");
+      instructions.openBtn = document.getElementById("instructionsBtn");
+      instructions.closeBtn = document.getElementById("instructions-close");
+      instructions.gotItBtn = document.getElementById("instructions-gotit");
+
+      if (instructions.openBtn) instructions.openBtn.addEventListener("click", openInstructions);
+      if (instructions.closeBtn) instructions.closeBtn.addEventListener("click", closeInstructions);
+      if (instructions.gotItBtn) instructions.gotItBtn.addEventListener("click", closeInstructions);
+
+      if (instructions.overlay) {
+        instructions.overlay.addEventListener("click", (e) => {
+          if (e.target === instructions.overlay) closeInstructions();
+        });
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (instructions.overlay && instructions.overlay.style.display !== "none" && e.key === "Escape") {
+          closeInstructions();
+        }
+      });
+
+      if (instructions.OPEN_ON_LOAD) {
+        const tryOpen = () => openInstructions();
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", tryOpen, { once: true });
+        } else {
+          tryOpen();
+        }
+      }
+    }
+
+    const ROLES = {
+      physician: {
+        id: "physician",
+        name: "University-Trained Physician",
+        traits: "Learned in Galen and Avicenna; close to the Cathedral and wealthy guilds.",
+        deltas: {
+          money: +8,
+          herbs: +1,
+          fear: -2,
+          church: +15,
+          order: +5,
+          justice: +3,
+          patronage: +10
+        },
+        startTreatment: "humors",
+        startDistrict: "market",
+        intro:
+          "The year is 1349. You are a university-trained physician, recently returned from the schools where masters argued that corrupted air and imbalanced humors drive this \"mortalitas\". The canons and guild elders have asked you to guide the city through the plague.\n"
+      },
+      surgeon: {
+        id: "surgeon",
+        name: "Barber-Surgeon",
+        traits: "Hands-on with razors and lancets; respected in the Market, tolerated by clergy.",
+        deltas: {
+          money: +4,
+          herbs: +2,
+          fear: -1,
+          church: +3,
+          order: +8,
+          justice: +1,
+          patronage: +3
+        },
+        startTreatment: "humors",
+        startDistrict: "market",
+        intro:
+          "The year is 1349. You are a barber-surgeon: you bleed, stitch, and set bones for craftsmen and soldiers. Now the city fathers press you into a larger role, hoping practical skill can steady a world gone strange.\n"
+      },
+      healer: {
+        id: "healer",
+        name: "Village Healer",
+        traits: "Root-cutter and charm-maker; trusted by the poor, watched uneasily by priests.",
+        deltas: {
+          money: +1,
+          herbs: +10,
+          fear: -3,
+          church: -8,
+          order: +2,
+          justice: +6,
+          patronage: -5
+        },
+        startTreatment: "herbalism",
+        startDistrict: "outskirts",
+        intro:
+          "The year is 1349. You are a village healer on the city’s edge, known for hedgerow simples and whispered prayers. The poor come to you first; now even city councillors send quiet messengers to your door.\n"
+      }
+    };
+
+    const state = {
+      day: 1,
+      maxDays: 30,
+      totalPop: 1000,
+      healthy: 900,
+      sick: 100,
+      dead: 0,
+      money: 40,
+      herbs: 10,
+      grain: 50,
+      fear: 30,
+      church: 50,
+      order: 60,
+      justice: 70,
+      patronage: 40,
+      infectionModifier: 1.0,
+      mortalityModifier: 1.0,
+      message: "",
+      gameOver: false,
+      endingText: "",
+      currentEvent: null,
+      eventText: "",
+      eventTitle: "",
+      eventOption1: "",
+      eventOption2: "",
+      eventTargetDistrictId: null,
+      districts: [
+        { id: "market", name: "Market", plague: 35, unrest: 25 },
+        { id: "outskirts", name: "Outskirts", plague: 40, unrest: 35 },
+        { id: "cathedral", name: "Cathedral", plague: 25, unrest: 20 }
+      ],
+      selectedDistrictId: "market",
+      currentTreatmentId: "herbalism",
+      whispers: "",
+      roleId: null,
+      roleName: "",
+      roleTraits: ""
+    };
+
+    const defaultTooltipText =
+      "Hover over a policy on the right, or a treatment approach below, and click a district card to focus your policies.";
+
+    const treatments = [
+      { id: "herbalism", name: "Herbal Remedies & Fumigation", note: "Posies, simples, smoke and vinegar to sweeten the air.", infectionFactor: 0.9, mortalityFactor: 1.0 },
+      { id: "humors", name: "Bleeding & Purging", note: "Lances, leeches, emetics and laxatives to balance humors.", infectionFactor: 1.0, mortalityFactor: 1.15 },
+      { id: "piety", name: "Relics & Prayer", note: "Masses, relics, processions; grace, not simples, at the center.", infectionFactor: 1.08, mortalityFactor: 1.0 },
+      { id: "segregation", name: "Closed Doors & Watched Lanes", note: "Households shut in, lanes watched, visitors turned away.", infectionFactor: 0.85, mortalityFactor: 1.03 }
+    ];
+
+    const treatmentHoverInfo = {
+      herbalism:
+        "Herbalism:\n• Best in Outskirts (big plague drop, herbs returned).\n• Strong in Market.\n• Distrusted near the Cathedral, where some clergy see certain practices as suspect.",
+      humors:
+        "Bleeding & Purging:\n• Risky everywhere: many die from the cure.\n• Profitable and calming in the Market.\n• Favoured by clergy and elites in the Cathedral.\n• Resented in the Outskirts.",
+      piety:
+        "Relics & Prayer:\n• Soothes fear, boosts Church and patronage.\n• Cures very few.\n• Processions around the Cathedral draw crowds and quietly feed the plague.",
+      segregation:
+        "Closed Doors & Watched Lanes:\n• Sick are urged to stay indoors while neighbours and beadles watch the streets.\n• Most effective where huts and alleys are close-packed, especially in the Outskirts.\n• Increases unrest and erodes justice when doors stay barred too long."
+    };
+
+    function getCurrentTreatment() {
+      return treatments.find(t => t.id === state.currentTreatmentId) || treatments[0];
+    }
+
+    function clampStats() {
+      state.fear = Math.max(0, Math.min(100, state.fear));
+      state.church = Math.max(0, Math.min(100, state.church));
+      state.order = Math.max(0, Math.min(100, state.order));
+      state.justice = Math.max(0, Math.min(100, state.justice));
+      state.patronage = Math.max(0, Math.min(100, state.patronage));
+      state.money = Math.max(0, state.money);
+      state.herbs = Math.max(0, state.herbs);
+      state.grain = Math.max(0, state.grain);
+
+      state.healthy = Math.max(0, state.healthy);
+      state.sick = Math.max(0, state.sick);
+      state.dead = Math.max(0, state.dead);
+
+      const sum = state.healthy + state.sick + state.dead;
+      if (sum > state.totalPop) {
+        let overflow = sum - state.totalPop;
+        let taken = Math.min(state.healthy, overflow);
+        state.healthy -= taken;
+        overflow -= taken;
+        if (overflow > 0) {
+          taken = Math.min(state.sick, overflow);
+          state.sick -= taken;
+        }
+      }
+
+      for (const d of state.districts) {
+        d.plague = Math.max(0, Math.min(100, d.plague));
+        d.unrest = Math.max(0, Math.min(100, d.unrest));
+      }
+    }
+
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function randFloat(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function getSelectedDistrict() {
+      return state.districts.find(d => d.id === state.selectedDistrictId) || state.districts[0];
+    }
+
+    function getAverageDistrictUnrest() {
+      if (!state.districts.length) return 0;
+      let sum = 0;
+      for (const d of state.districts) sum += d.unrest;
+      return sum / state.districts.length;
+    }
+
+    function getAverageDistrictPlague() {
+      if (!state.districts.length) return 0;
+      let sum = 0;
+      for (const d of state.districts) sum += d.plague;
+      return sum / state.districts.length;
+    }
+
+    function getMoodText() {
+      const fear = state.fear;
+      const unrest = getAverageDistrictUnrest();
+
+      if (fear < 20 && unrest < 25) return "Mood: uneasy, but neighbours still greet one another in the lanes.";
+      if (fear < 40 && unrest < 40) return "Mood: anxious; gossip thickens like smoke in the taverns.";
+      if (fear >= 40 && fear < 70) {
+        if (unrest < 50) return "Mood: frightened, yet most still trust that someone is in charge.";
+        return "Mood: frayed; doors bolt early and tempers go short.";
+      }
+      if (unrest >= 60) return "Mood: near-breaking. The city feels ready to snap at the smallest spark.";
+      return "Mood: terror keeps the streets quiet; even the bells sound nervous.";
+    }
+
+    function getPowerText() {
+      const church = state.church;
+      const order = state.order;
+      const justice = state.justice;
+      const patronage = state.patronage;
+
+      if (church > 65 && patronage > 55 && justice < 45) return "Power: the Cathedral and its patrons overshadow the city courts.";
+      if (justice >= 60 && order >= 50) return "Power: council and courts still hold together, if only just.";
+      if (order < 30 && justice < 40) return "Power: scattered; every guild, priest and captain pulls in a different direction.";
+      if (church >= 50 && order >= 40) return "Power: shared uneasily between city officers and the Cathedral chapter.";
+      if (patronage >= 60 && church < 40) return "Power: wealthy patrons move quietly behind you, buying influence where law falters.";
+      return "Power: fragile; authority stands, but only so long as fear runs in your favour.";
+    }
+
+    function pickWhisper() {
+      const fear = state.fear;
+      const plague = getAverageDistrictPlague();
+      const unrest = getAverageDistrictUnrest();
+
+      const options = [];
+      if (plague > 60) {
+        options.push("A cart of bodies rattled past before dawn; someone swears one of them moved.");
+        options.push("Neighbours speak of windows that never open and chimneys that smoke all night.");
+      }
+      if (fear > 70) {
+        options.push("An old woman whispered that the plague has learned all the streets by heart.");
+        options.push("Someone claims they heard the bell toll thirteen times for a single death.");
+      }
+      if (unrest > 55) {
+        options.push("In the alehouse corners, men mutter that justice walks with its eyes shut.");
+        options.push("Rumour says a stone was thrown at a priest who would not bless a locked door.");
+      }
+      if (fear < 35 && plague < 45) {
+        options.push("Children still play in the square, though their games now end with feigned deaths.");
+        options.push("A baker is said to have laughed this morning; people stopped to listen.");
+      }
+      if (!options.length) options.push("The city listens, as if waiting to hear what you will order next.");
+      return options[randInt(0, options.length - 1)];
+    }
+
+    function maybeTriggerMajorEvent() {
+      if (state.currentEvent || state.gameOver) return;
+
+      const roll = Math.random();
+      const targetDistrict = state.districts[randInt(0, state.districts.length - 1)];
+
+      if (state.fear >= 60 && state.justice <= 80 && roll < 0.12) {
+        state.currentEvent = "scapegoat";
+        state.eventTitle = "A City on Edge...";
+        state.eventText =
+          `In the ${targetDistrict.name}, rumours spread that Jewish community and other outsiders have poisoned the wells. A frightened crowd gathers, demanding that someone be punished for the deaths.\n`;
+        state.eventOption1 = "Protect the Accused";
+        state.eventOption2 = "Look Away / Allow Violence";
+        state.eventTargetDistrictId = targetDistrict.id;
+        return;
+      }
+
+      if ((state.fear >= 50 || state.church <= 40) && roll < 0.2) {
+        state.currentEvent = "flagellants";
+        state.eventTitle = "Flagellants at the Gate";
+        state.eventText =
+          "A band of flagellants arrives, beating their backs and chanting that the plague is God's wrath. They ask to preach and process through the city, promising that stricter penance will turn away divine anger.\n";
+        state.eventOption1 = "Welcome them; let them preach";
+        state.eventOption2 = "Turn them away at the gate";
+        state.eventTargetDistrictId = "cathedral";
+      }
+    }
+
+    function maybeTriggerMiniEvent() {
+      if (state.currentEvent || state.gameOver) return;
+
+      const t = getCurrentTreatment();
+      const market = state.districts.find(d => d.id === "market");
+      const outskirts = state.districts.find(d => d.id === "outskirts");
+      const cathedral = state.districts.find(d => d.id === "cathedral");
+      const roll = Math.random();
+
+      if (t.id === "herbalism") {
+        if (outskirts && outskirts.plague >= 50 && outskirts.unrest <= 70 && roll < 0.18) {
+          state.currentEvent = "hedgeWitch";
+          state.eventTitle = "The Hedge-Witch";
+          state.eventText =
+            "A woman from the hedgerows is said to cure fevers with charms and bitter draughts. Some swear she has saved their children. Others whisper \"witch\".\n";
+          state.eventOption1 = "Employ her quietly";
+          state.eventOption2 = "Denounce her as a witch";
+          state.eventTargetDistrictId = "outskirts";
+          return;
+        }
+        if (market && market.plague >= 40 && roll < 0.3) {
+          state.currentEvent = "theriac";
+          state.eventTitle = "An Apothecary’s Theriac";
+          state.eventText =
+            "A guild apothecary proposes a costly theriac inspired by recipes from Italy: viper flesh, spices, opium and wine. It might help, or it might simply empty purses. \n";
+          state.eventOption1 = "Fund the theriac from the treasury";
+          state.eventOption2 = "Refuse and forbid its sale";
+          state.eventTargetDistrictId = "market";
+          return;
+        }
+      }
+
+      if (t.id === "humors") {
+        if (roll < 0.25) {
+          state.currentEvent = "barber";
+          state.eventTitle = "The Barber-Surgeon’s Boast";
+          state.eventText =
+            "A barber-surgeon boasts that his bleedings have spared many, but several families claim their kin died after his cups. Guildsmen urge you to back him; the poor grumble in the taverns.\n";
+          state.eventOption1 = "Support the barber-surgeon";
+          state.eventOption2 = "Investigate and punish him";
+          state.eventTargetDistrictId = state.selectedDistrictId;
+          return;
+        }
+      }
+
+      if (t.id === "piety") {
+        if (cathedral && cathedral.plague <= 55 && roll < 0.25) {
+          state.currentEvent = "relic";
+          state.eventTitle = "A \"Miraculous\" Relic";
+          state.eventText =
+            "A brief lull in deaths near the Cathedral is taken as proof that a minor relic has worked a miracle. Pilgrims press in, hungry for hope.\n";
+          state.eventOption1 = "Proclaim the miracle from the pulpit";
+          state.eventOption2 = "Urge caution and temper the claim";
+          state.eventTargetDistrictId = "cathedral";
+          return;
+        }
+      }
+
+      if (t.id === "segregation") {
+        if (outskirts && outskirts.unrest >= 70 && roll < 0.25) {
+          state.currentEvent = "isolation";
+          state.eventTitle = "Riot in the Shut Lane";
+          state.eventText =
+            "On the edge of town, a narrow lane where many sick have been shut indoors erupts in anger. Families shout to be let in or out, and a crowd gathers around the barred way. Someone has already thrown a torch toward a shuttered door.\n";
+          state.eventOption1 = "Hold the lane closed at all costs";
+          state.eventOption2 = "Ease the rules and calm them";
+          state.eventTargetDistrictId = "outskirts";
+          return;
+        }
+      }
+    }
+
+    function advanceDay() {
+      if (state.gameOver || !state.roleId) return;
+      if (state.currentEvent) return;
+
+      const t = getCurrentTreatment();
+
+      let baseInfectionRate = 0.06;
+      let baseMortalityRate = 0.12;
+      baseInfectionRate *= t.infectionFactor;
+      baseMortalityRate *= t.mortalityFactor;
+
+      let infectionRate = baseInfectionRate * state.infectionModifier;
+      let mortalityRate = baseMortalityRate * state.mortalityModifier;
+
+      infectionRate *= randFloat(0.8, 1.2);
+      mortalityRate *= randFloat(0.8, 1.2);
+
+      const newSick = Math.round(state.healthy * infectionRate);
+      const newDead = Math.round(state.sick * mortalityRate);
+
+      state.healthy -= newSick;
+      state.sick += newSick;
+      state.sick -= newDead;
+      state.dead += newDead;
+
+      for (const d of state.districts) {
+        const base = randInt(2, 6);
+        const fearBoost = state.fear > 60 ? 2 : 0;
+        d.plague += base + fearBoost;
+        if (d.plague > 60) d.unrest += randInt(1, 3);
+      }
+
+      if (t.id === "herbalism") {
+        if (state.herbs > 0) {
+          const used = Math.min(2, state.herbs);
+          state.herbs -= used;
+          state.fear -= 1;
+        } else {
+          state.fear += 2;
+        }
+        state.church -= 1;
+        state.patronage -= 1;
+      } else if (t.id === "humors") {
+        if (state.sick > 0) {
+          const harmed = Math.min(randInt(2, 6), state.sick);
+          state.sick -= harmed;
+          state.dead += harmed;
+        }
+        state.fear -= 1;
+        state.church += 1;
+      } else if (t.id === "piety") {
+        state.church += 3;
+        state.patronage += 3;
+        state.fear -= 2;
+        state.infectionModifier *= 1.02;
+      } else if (t.id === "segregation") {
+        for (const d of state.districts) d.unrest += 1;
+        state.order -= 1;
+        state.church -= 1;
+        state.fear += 1;
+        state.infectionModifier *= 0.98;
+      }
+
+      const grainUsed = 3;
+      state.grain -= grainUsed;
+
+      if (state.order > 20) state.money += 1;
+
+      const outskirts = state.districts.find(d => d.id === "outskirts");
+      if (outskirts && outskirts.plague < 60 && Math.random() < 0.35) {
+        state.herbs += randInt(1, 2);
+      }
+
+      let patronageLine = "";
+      if (state.patronage >= 45 && Math.random() < state.patronage / 200) {
+        const gift = randInt(2, 6);
+        state.money += gift;
+        state.justice -= 1;
+        patronageLine =
+          `\nIn the cloisters, a canon leaves you a discreet purse (+${gift} money) in thanks for your favour to the Cathedral.`;
+      }
+
+      if (state.grain <= 10) {
+        state.fear += 4;
+        state.order -= 4;
+        state.message =
+          `Grain stores run thin. Stomachs empty, tempers fray.\nThis day, ${newSick} fell ill and ${newDead} died.`;
+      } else {
+        state.message =
+          `A new day dawns. ${newSick} fell ill, ${newDead} died.\nGrain stores fall by ${grainUsed}.`;
+      }
+      state.message += patronageLine;
+
+      state.fear += Math.round(newDead * 0.02);
+      if (state.fear > 60) state.order -= 2;
+
+      state.church += randInt(-1, 1);
+      if (state.fear > 70) state.justice -= 1;
+
+      const highUnrestDistricts = state.districts.filter(d => d.unrest >= 70).length;
+      if (highUnrestDistricts > 0) state.order -= highUnrestDistricts * 2;
+
+      state.patronage += randInt(-1, 1);
+
+      clampStats();
+
+      if (state.dead > state.totalPop * 0.6) {
+        state.gameOver = true;
+        state.endingText =
+          "The bells toll without ceasing. Over half your people are dead. Whatever measures you took, the plague has broken the city.\n";
+      } else if (state.order <= 0) {
+        state.gameOver = true;
+        state.endingText =
+          "Riots break out in the streets. People turn on clergy and physicians alike. Authority collapses as fear overwhelms order.\n";
+      } else if (state.day >= state.maxDays) {
+        state.gameOver = true;
+        if (
+          state.dead < state.totalPop * 0.2 &&
+          state.church >= 40 &&
+          state.order >= 40 &&
+          state.justice >= 60 &&
+          state.grain > 0
+        ) {
+          state.endingText =
+            "The first great wave passes. Your city is scarred, but still alive. You resisted the urge to sacrifice the vulnerable, guarded justice, and somehow kept bellies filled.\n";
+        } else if (state.dead < state.totalPop * 0.35 && state.justice >= 40) {
+          state.endingText =
+            "The plague recedes. Many are dead, but the city remains. Some call you prudent, others say you failed to trust God—or trusted Him too much.\n";
+        } else if (state.justice < 30) {
+          state.endingText =
+            "When the worst has passed, the streets are quieter—but not only because of the plague. Those who were blamed and attacked will not forget how quickly fear turned neighbour against neighbour.\n";
+        } else if (state.grain <= 0) {
+          state.endingText =
+            "The plague was not your only enemy. Hunger hollowed out the city. In the end, famine and fear did as much harm as any fever.\n";
+        } else {
+          state.endingText =
+            "When the worst has passed, whole streets lie empty. Your name will be remembered, but not always with kindness.\n";
+        }
+      }
+
+      state.day += 1;
+      state.whispers = pickWhisper();
+
+      maybeTriggerMajorEvent();
+      if (!state.currentEvent && !state.gameOver) maybeTriggerMiniEvent();
+
+      render();
+    }
+
+    function treatSick() {
+      if (state.gameOver || state.currentEvent || !state.roleId) return;
+
+      const t = getCurrentTreatment();
+      const d = getSelectedDistrict();
+
+      let herbCost = 2;
+      if (t.id === "herbalism") herbCost = 4;
+      if (t.id === "humors") herbCost = 1;
+      if (t.id === "piety") herbCost = 0;
+      if (t.id === "segregation") herbCost = 2;
+
+      if (state.herbs < herbCost) {
+        state.message = "You lack the herbs or supplies to make this treatment convincing.";
+        render();
+        return;
+      }
+
+      state.herbs -= herbCost;
+
+      let baseTreated = Math.min(Math.floor(state.sick / 3) + 5, state.sick);
+      let recovered = baseTreated;
+      let harmed = 0;
+
+      if (t.id === "herbalism") {
+        if (d.id === "market") {
+          recovered = Math.round(baseTreated * 1.5);
+          harmed = 0;
+          d.plague -= 18;
+          d.unrest -= 6;
+          state.fear -= 3;
+          state.money = Math.max(0, state.money - 2);
+          state.church -= 2;
+          state.patronage -= 2;
+          if (Math.random() < 0.5) state.herbs += randInt(1, 2);
+          state.message =
+            `In the stalls and alleys of the ${d.name}, your herbs and fumigations seem to work wonders.\n` +
+            `${recovered} traders and townsfolk rise from their beds, and the reek of illness lifts from the market.`;
+        } else if (d.id === "outskirts") {
+          recovered = Math.round(baseTreated * 1.3);
+          harmed = 0;
+          d.plague -= 22;
+          d.unrest -= 8;
+          state.fear -= 4;
+          state.justice += 1;
+          state.herbs += randInt(2, 4);
+          state.message =
+            `You work among hut and shambles in the ${d.name}, using hedgerow simples and bitter draughts.\n` +
+            `${recovered} villagers improve, and the plague’s grip on the outskirts slackens sharply.`;
+        } else if (d.id === "cathedral") {
+          recovered = Math.round(baseTreated * 0.9);
+          harmed = 0;
+          d.plague -= 8;
+          d.unrest -= 2;
+          state.fear -= 1;
+          state.church -= 4;
+          state.patronage -= 4;
+          state.justice += 3;
+          state.message =
+            `You bring herbs and smoke into the ${d.name}, but some clergy call your work pagan.\n` +
+            `${recovered} canons and clerks recover, yet your standing with the Cathedral suffers.`;
+        }
+      } else if (t.id === "humors") {
+        harmed = Math.round(baseTreated * 0.6);
+        recovered = baseTreated - harmed;
+
+        if (d.id === "market") {
+          d.plague -= 8;
+          d.unrest -= 1;
+          state.fear -= 3;
+          state.money += 3;
+          state.message =
+            `Cup, lancet, and leech come out in the ${d.name}.\n` +
+            `${recovered} seem steadier after the bleeding, but ${harmed} die under your hands as the barber-surgeons grow richer.`;
+        } else if (d.id === "outskirts") {
+          d.plague -= 4;
+          d.unrest += 4;
+          state.fear += 2;
+          state.justice -= 2;
+          state.message =
+            `In the ${d.name}, crude bleedings and purges fall heaviest on the poor.\n` +
+            `Only ${recovered} pull through, while ${harmed} die looking more like victims than patients.`;
+        } else if (d.id === "cathedral") {
+          d.plague -= 10;
+          state.church += 4;
+          state.patronage += 5;
+          state.order += 1;
+          state.justice -= 3;
+          state.message =
+            `You bleed and purge the clergy and their patrons in the ${d.name}.\n` +
+            `${recovered} high-born sufferers recover, ${harmed} die quietly, and the Church praises your "firm hand".`;
+        }
+      } else if (t.id === "piety") {
+        recovered = Math.round(baseTreated * 0.3);
+        harmed = 0;
+
+        if (d.id === "market") {
+          d.plague -= 2;
+          state.fear -= 4;
+          state.order += 2;
+          state.money += randInt(1, 2);
+          state.message =
+            `You lead prayers and display relics in the ${d.name}.\n` +
+            `Only ${recovered} truly improve, but the crowds feel steadier, and coins clink into alms chests.`;
+        } else if (d.id === "outskirts") {
+          d.plague -= 0;
+          d.unrest += 3;
+          state.fear -= 1;
+          state.justice -= 1;
+          state.message =
+            `You send friars and relics to the ${d.name}, but hunger and filth remain.\n` +
+            `A mere ${recovered} seem better; many mutter that God favours the rich.`;
+        } else if (d.id === "cathedral") {
+          d.plague += 6;
+          state.infectionModifier *= 1.05;
+          state.church += 6;
+          state.patronage += 7;
+          state.fear -= 5;
+          state.money += randInt(3, 6);
+          state.message =
+            `Masses and processions fill the ${d.name}. Pilgrims press shoulder to shoulder around the relics.\n` +
+            `${recovered} are hailed as miracles, but the crush feeds the plague even as church coffers overflow.`;
+        }
+      } else if (t.id === "segregation") {
+        recovered = Math.round(baseTreated * 0.7);
+        harmed = baseTreated - recovered;
+
+        if (d.id === "market") {
+          d.plague -= 12;
+          d.unrest += 5;
+          state.fear -= 1;
+          state.money = Math.max(0, state.money - 2);
+          state.justice -= 2;
+          state.message =
+            `You order constables and beadles to keep sick households in the ${d.name} behind closed doors.\n` +
+            `${recovered} later creep back into the streets, weaker but alive; ${harmed} are said to have died behind barred shutters.`;
+        } else if (d.id === "outskirts") {
+          d.plague -= 20;
+          d.unrest += 8;
+          state.fear -= 2;
+          state.justice -= 5;
+          state.message =
+            `In the ${d.name}, neighbours nail doors shut and leave food and water outside for the feverish.\n` +
+            `${recovered} emerge after days indoors, blinking at the light, while whispers say ${harmed} died unseen on their own floors.`;
+        } else if (d.id === "cathedral") {
+          d.plague -= 10;
+          state.church -= 4;
+          state.patronage -= 6;
+          state.order -= 3;
+          state.fear += 2;
+          state.message =
+            `You insist that even canons and patrons near the ${d.name} keep their sick behind closed doors and away from chapel.\n` +
+            `${recovered} return to the choir-stalls resentful; ${harmed} die without the rites they expected in public view.`;
+        }
+      }
+
+      recovered = Math.min(recovered, state.sick);
+      harmed = Math.min(harmed, state.sick - recovered);
+
+      state.sick -= (recovered + harmed);
+      state.healthy += recovered;
+      state.dead += harmed;
+
+      state.fear -= 2;
+      d.unrest -= 2;
+
+      let extraLine = "";
+      if (harmed > 0 && t.id === "humors") {
+        extraLine = `\nRumours race through the inns: some swear your "cures" are swifter killers than the plague itself.`;
+      } else if (harmed > 0 && t.id === "segregation") {
+        extraLine = `\nThose who die behind closed doors become stories rather than neighbours, and justice grows thin.`;
+      }
+
+      state.message += extraLine;
+
+      clampStats();
+      render();
+    }
+
+    function quarantine() {
+      if (state.gameOver || state.currentEvent || !state.roleId) return;
+      const d = getSelectedDistrict();
+      state.infectionModifier *= 0.9;
+      d.plague -= 12;
+      d.unrest += 8;
+
+      state.order -= 4;
+      state.church -= 2;
+      state.fear += 3;
+      state.patronage -= (d.id === "cathedral" ? 4 : 1);
+      state.message =
+        `You tighten patrols and discourage gatherings in the ${d.name}.\n` +
+        "Doors slam, shutters close. Merchants complain, and some priests warn against abandoning the sick.";
+      clampStats();
+      render();
+    }
+
+    function burnFires() {
+      if (state.gameOver || state.currentEvent || !state.roleId) return;
+      if (state.money < 5) {
+        state.message = "There is not enough money to keep cleansing fires burning through the night.";
+        render();
+        return;
+      }
+      state.money -= 5;
+      state.infectionModifier *= 0.92;
+      state.fear -= 2;
+      for (const d of state.districts) d.plague -= 4;
+      state.patronage -= 1;
+      state.message =
+        "Fires of wood and herbs burn in the squares across the city. The smoke calms some, alarms others.";
+      clampStats();
+      render();
+    }
+
+    function procession() {
+      if (state.gameOver || state.currentEvent || !state.roleId) return;
+      const cathedral = state.districts.find(d => d.id === "cathedral") || getSelectedDistrict();
+      state.church += 10;
+      state.patronage += 6;
+      state.infectionModifier *= 1.12;
+      state.fear += 2;
+      state.order += 3;
+      cathedral.plague += 8;
+      cathedral.unrest -= 4;
+      state.message =
+        "A solemn procession winds through the streets and circles the Cathedral. Crowds gather shoulder to shoulder beneath the bells, singing and weeping.\n";
+      clampStats();
+      render();
+    }
+
+    function almsgiving() {
+      if (state.gameOver || state.currentEvent || !state.roleId) return;
+      if (state.money < 4) {
+        state.message = "You cannot spare enough coin for notable charity today.";
+        render();
+        return;
+      }
+      state.money -= 4;
+      const d = getSelectedDistrict();
+      state.fear -= 4;
+      state.order += 4;
+      state.church += 2;
+      state.patronage += 2;
+      d.unrest -= 10;
+
+      state.message =
+        `You distribute bread and coins in the ${d.name}. For a moment, hunger and anger ease together,\n` +
+        "and the crowd murmurs blessings instead of curses.";
+      clampStats();
+      render();
+    }
+
+    function secureGrain() {
+      if (state.gameOver || state.currentEvent || !state.roleId) return;
+      if (state.money < 6) {
+        state.message = "Your treasurer shakes his head. There is not enough coin to buy more grain.";
+        render();
+        return;
+      }
+      state.money -= 6;
+      const gained = randInt(8, 16);
+      state.grain += gained;
+      state.infectionModifier *= 1.05;
+      for (const d of state.districts) d.unrest -= 4;
+      state.patronage += 1;
+      state.message =
+        `You send wagons and riders to the surrounding countryside to buy grain.\n` +
+        `${gained} sacks are brought within the walls, along with all who carried them.`;
+      clampStats();
+      render();
+    }
+
+    function levyTax() {
+      if (state.gameOver || state.currentEvent || !state.roleId) return;
+
+      const d = getSelectedDistrict();
+      const base = randInt(4, 8);
+      const orderFactor = Math.max(0.4, Math.min(1.8, state.order / 50));
+      const gained = Math.round(base * orderFactor);
+
+      if (gained <= 0) {
+        state.message =
+          `Your officials fan out through the ${d.name}, but chaos and fear smother their efforts.\n` +
+          "Few coins make it back to your chest.";
+      } else {
+        state.money += gained;
+        state.message =
+          `Collectors and guards sweep the ${d.name}, demanding "emergency levies".\n` +
+          `They return with about ${gained} coins—and a great deal of muttering behind closed shutters.`;
+      }
+
+      d.unrest += randInt(6, 10);
+      state.fear += 3;
+      state.justice -= 4;
+      state.order -= 2;
+
+      state.patronage -= (d.id === "cathedral") ? 6 : 2;
+
+      clampStats();
+      render();
+    }
+
+    function forageHerbs() {
+      if (state.gameOver || state.currentEvent || !state.roleId) return;
+
+      const d = getSelectedDistrict();
+      const isOutskirts = d.id === "outskirts";
+      const gained = randInt(isOutskirts ? 5 : 2, isOutskirts ? 10 : 5);
+      state.herbs += gained;
+
+      d.plague += isOutskirts ? randInt(4, 9) : randInt(2, 6);
+      d.unrest += randInt(1, 4);
+
+      if (Math.random() < 0.35) {
+        const extraSick = randInt(3, 8);
+        const convert = Math.min(extraSick, state.healthy);
+        state.healthy -= convert;
+        state.sick += convert;
+        state.message =
+          `You send crews out from the ${d.name} with sacks and knives.\n` +
+          `${gained} bundles of herbs return—but some foragers cough and shiver by nightfall.`;
+      } else {
+        state.message =
+          `Men and women scour gardens, hedgerows, and ditches beyond the ${d.name}.\n` +
+          `They return with ${gained} bundles of herbs and stories of shallow graves and strange smells.`;
+      }
+
+      state.fear += 1;
+      clampStats();
+      render();
+    }
+
+    function handleEventChoice(option) {
+      if (!state.currentEvent || state.gameOver || !state.roleId) return;
+
+      const targetDistrict =
+        state.districts.find(d => d.id === state.eventTargetDistrictId) || getSelectedDistrict();
+
+      let msg = "";
+
+      switch (state.currentEvent) {
+        case "scapegoat":
+          if (option === 1) {
+            state.order -= 5;
+            state.fear += 2;
+            state.church -= 3;
+            state.patronage -= 4;
+            state.justice += 10;
+            targetDistrict.unrest += 2;
+            msg =
+              `You send guards and clergy you trust into the ${targetDistrict.name} to forbid violence.\n` +
+              "Some call you naive or dangerous, but the accused are spared—for now.";
+          } else {
+            const extraDeaths = randInt(10, 40);
+            state.dead += extraDeaths;
+            state.totalPop -= extraDeaths;
+            state.order += 5;
+            state.fear -= 5;
+            state.church += 4;
+            state.patronage += 3;
+            state.justice -= 20;
+            targetDistrict.unrest -= 8;
+            targetDistrict.plague += 10;
+            msg =
+              `You do not stop the crowd in the ${targetDistrict.name} as they attack those they blame.\n` +
+              `In the days that follow, ${extraDeaths} more are dead—not of plague, but of fear.`;
+          }
+          break;
+
+        case "flagellants":
+          if (option === 1) {
+            state.church += 10;
+            state.patronage += 5;
+            state.order += 4;
+            state.fear -= 5;
+            state.infectionModifier *= 1.1;
+            targetDistrict.plague += 8;
+            targetDistrict.unrest -= 3;
+            state.justice -= 3;
+            msg =
+              "The flagellants process through the streets, chanting and bleeding. Many join their prayers, but the crowds they draw are dense, and their sermons stir talk of sin and punishment.\n";
+          } else {
+            state.church -= 5;
+            state.patronage -= 4;
+            state.order -= 2;
+            state.fear += 3;
+            state.justice += 3;
+            targetDistrict.unrest += 3;
+            msg =
+              "You command that the flagellants not be allowed within the walls. Some say you defy God's messengers; others breathe easier, fearing the frenzy they might have brought.\n";
+          }
+          break;
+
+        case "hedgeWitch":
+          if (option === 1) {
+            const herbsGain = randInt(3, 5);
+            state.herbs += herbsGain;
+            targetDistrict.plague -= 8;
+            targetDistrict.unrest -= 2;
+            state.fear -= 2;
+            state.church -= 3;
+            state.patronage -= 2;
+            state.justice += 2;
+            msg =
+              "You send for the woman quietly and give her a corner of an almshouse.\n" +
+              `Her draughts and charms seem to help; you gain ${herbsGain} bundles of herbs and a little hope.`;
+          } else {
+            const deaths = randInt(4, 10);
+            state.dead += deaths;
+            state.totalPop -= deaths;
+            state.church += 3;
+            state.patronage += 2;
+            state.justice -= 4;
+            targetDistrict.unrest += 5;
+            state.fear -= 1;
+            msg =
+              "You denounce her as a witch. The crowd drags her away to a field beyond the walls.\n" +
+              `Afterwards, ${deaths} more bodies are found—none of them hers.`;
+          }
+          break;
+
+        case "theriac":
+          if (option === 1) {
+            const cost = randInt(5, 8);
+            state.money = Math.max(0, state.money - cost);
+            state.herbs = Math.max(0, state.herbs - 3);
+            if (Math.random() < 0.5) {
+              state.mortalityModifier *= 0.95;
+              targetDistrict.plague -= 4;
+              msg =
+                "You underwrite the apothecary’s theriac. The first patients seem to sleep more easily, and a few who were close to death linger on. Word spreads that you 'spare no expense'.\n";
+            } else {
+              state.order -= 2;
+              state.fear += 2;
+              msg =
+                "The theriac proves more soporific than salvific. Families complain of wasted coin and bitter draughts. Some accuse the apothecaries of growing rich on false hopes.\n";
+            }
+          } else {
+            targetDistrict.unrest += 3;
+            state.fear += 2;
+            msg =
+              "You forbid the making of such costly mixtures. Guild apothecaries mutter about your ignorance, and their patrons wonder what might have been.\n";
+          }
+          break;
+
+        case "barber":
+          if (option === 1) {
+            const extraDeaths = randInt(3, 9);
+            state.dead += extraDeaths;
+            state.totalPop -= extraDeaths;
+            state.church += 2;
+            state.order += 2;
+            state.fear -= 2;
+            state.justice -= 3;
+            msg =
+              "You praise the barber-surgeon’s diligence and urge the people to trust his lancet.\n" +
+              `A few more die under his hands, but the streets fall a little quieter (${extraDeaths} more dead).`;
+          } else {
+            state.justice += 4;
+            state.order -= 2;
+            state.church -= 2;
+            state.patronage -= 2;
+            state.fear += 1;
+            msg =
+              "You question his practice before guild and clergy alike, and restrict his work. Some call you honourable; others whisper that you have shamed the art of medicine.\n";
+          }
+          break;
+
+        case "relic":
+          if (option === 1) {
+            const gift = randInt(4, 8);
+            state.money += gift;
+            state.church += 5;
+            state.patronage += 5;
+            state.fear -= 3;
+            state.infectionModifier *= 1.06;
+            targetDistrict.plague += 10;
+            msg =
+              "You proclaim the relic’s virtue from the pulpit. Bells ring and pilgrims surge toward the Cathedral.\n" +
+              `Offerings fill the chests (+${gift} money), but bodies press together under vaulted stone.`;
+          } else {
+            state.church -= 2;
+            state.patronage -= 2;
+            state.justice += 3;
+            state.fear -= 1;
+            msg =
+              "You speak carefully, thanking God for mercy but warning against rash talk of miracles. Some call you cold; others say you have spared the desperate from false hope.\n";
+          }
+          break;
+
+        case "isolation":
+          if (option === 1) {
+            const riotDeaths = randInt(8, 20);
+            state.dead += riotDeaths;
+            state.totalPop -= riotDeaths;
+            targetDistrict.plague -= 8;
+            state.justice -= 5;
+            state.order += 3;
+            state.fear += 4;
+            msg =
+              "You back the beadles and watchmen, ordering the lane kept shut and the crowd driven back.\n" +
+              `Stones and blows fly; when it is over, ${riotDeaths} lie dead in the lane, but fewer sick slip out into the city.`;
+          } else {
+            targetDistrict.unrest -= 10;
+            state.justice += 2;
+            state.fear -= 1;
+            state.infectionModifier *= 1.05;
+            msg =
+              "You order doors unbarred and rules eased, letting families see their sick and come and go more freely. The shouting fades, but you know you have loosened the net that held the plague close to a few houses.\n";
+          }
+          break;
+      }
+
+      state.message = msg;
+      state.currentEvent = null;
+      clampStats();
+      render();
+    }
+
+    function renderBars() {
+      document.getElementById("fear-bar").style.width = state.fear + "%";
+      document.getElementById("church-bar").style.width = state.church + "%";
+      document.getElementById("order-bar").style.width = state.order + "%";
+      document.getElementById("justice-bar").style.width = state.justice + "%";
+      document.getElementById("patronage-bar").style.width = state.patronage + "%";
+
+      document.getElementById("fear-label").textContent = `Fear: ${state.fear}`;
+      document.getElementById("church-label").textContent = `Church approval: ${state.church}`;
+      document.getElementById("order-label").textContent = `Public order: ${state.order}`;
+      document.getElementById("justice-label").textContent = `Justice: ${state.justice}`;
+      document.getElementById("patronage-label").textContent = `Cathedral patronage: ${state.patronage}`;
+    }
+
+    function renderStats() {
+      document.getElementById("day-display").textContent = `Day ${state.day} / ${state.maxDays}`;
+
+      const roleLine = document.getElementById("role-line");
+      const roleTraits = document.getElementById("role-traits");
+      if (state.roleId) {
+        roleLine.textContent = `Role: ${state.roleName}`;
+        roleTraits.textContent = state.roleTraits;
+      } else {
+        roleLine.textContent = "Role: (choose to begin)";
+        roleTraits.textContent = "";
+      }
+
+      document.getElementById("total-pop").textContent = `Total population: ${state.totalPop}`;
+      document.getElementById("healthy").textContent = `Healthy: ${state.healthy}`;
+      document.getElementById("sick").textContent = `Sick: ${state.sick}`;
+      document.getElementById("dead").textContent = `Dead: ${state.dead}`;
+
+      document.getElementById("money").textContent = `Money: ${state.money}`;
+      document.getElementById("herbs").textContent = `Herbs: ${state.herbs}`;
+      document.getElementById("grain").textContent = `Grain stores: ${state.grain}`;
+
+      renderBars();
+
+      const moodEl = document.getElementById("mood-summary");
+      const powerEl = document.getElementById("power-summary");
+      const whisperEl = document.getElementById("whispers");
+
+      if (moodEl) moodEl.textContent = getMoodText();
+      if (powerEl) powerEl.textContent = getPowerText();
+      if (whisperEl) whisperEl.textContent = state.whispers || pickWhisper();
+    }
+
+    function renderMessage() {
+      document.getElementById("message-panel").textContent =
+        state.message || "Once you choose your role, the first rumours and decisions will appear here.";
+    }
+
+    function renderEvent() {
+      const eventPanel = document.getElementById("event-panel");
+      const eventTitle = document.getElementById("event-title");
+      const eventText = document.getElementById("event-text");
+      const btn1 = document.getElementById("btn-event-1");
+      const btn2 = document.getElementById("btn-event-2");
+
+      if (state.currentEvent) {
+        eventPanel.style.display = "flex";
+        eventTitle.textContent = state.eventTitle;
+        eventText.textContent = state.eventText;
+        btn1.textContent = state.eventOption1;
+        btn2.textContent = state.eventOption2;
+      } else {
+        eventPanel.style.display = "none";
+      }
+    }
+
+    function renderOverlay() {
+      const overlay = document.getElementById("overlay");
+      const endingText = document.getElementById("ending-text");
+
+      if (state.gameOver) {
+        overlay.style.display = "flex";
+        endingText.textContent = state.endingText;
+      } else {
+        overlay.style.display = "none";
+      }
+    }
+
+    function renderCityHighlight() {
+      const map = { market: "zone-market", cathedral: "zone-cathedral", outskirts: "zone-outskirts" };
+      document.querySelectorAll(".city-zone").forEach(z => z.classList.remove("focused"));
+      const cls = map[state.selectedDistrictId];
+      if (cls) {
+        const el = document.querySelector("." + cls);
+        if (el) el.classList.add("focused");
+      }
+    }
+
+    function renderDistricts() {
+      const container = document.getElementById("districts");
+      container.innerHTML = "";
+
+      for (const d of state.districts) {
+        const card = document.createElement("div");
+        card.className = "district-card";
+        if (d.id === state.selectedDistrictId) card.classList.add("selected");
+
+        const name = document.createElement("div");
+        name.className = "district-name";
+        name.textContent = d.name;
+        card.appendChild(name);
+
+        const lines = document.createElement("div");
+        lines.className = "district-lines";
+
+        const plagueLabel = document.createElement("div");
+        plagueLabel.className = "district-line-label";
+        plagueLabel.textContent = `Plague: ${d.plague}`;
+        lines.appendChild(plagueLabel);
+
+        const plagueBg = document.createElement("div");
+        plagueBg.className = "district-meter-bg";
+        const plagueFill = document.createElement("span");
+        plagueFill.className = "district-meter-fill district-meter-plague";
+        plagueFill.style.width = d.plague + "%";
+        plagueBg.appendChild(plagueFill);
+        lines.appendChild(plagueBg);
+
+        const unrestLabel = document.createElement("div");
+        unrestLabel.className = "district-line-label";
+        unrestLabel.textContent = `Unrest: ${d.unrest}`;
+        lines.appendChild(unrestLabel);
+
+        const unrestBg = document.createElement("div");
+        unrestBg.className = "district-meter-bg";
+        const unrestFill = document.createElement("span");
+        unrestFill.className = "district-meter-fill district-meter-unrest";
+        unrestFill.style.width = d.unrest + "%";
+        unrestBg.appendChild(unrestFill);
+        lines.appendChild(unrestBg);
+
+        card.appendChild(lines);
+
+        card.onclick = () => {
+          state.selectedDistrictId = d.id;
+          renderDistricts();
+          renderCityHighlight();
+          renderDoctrinePanel();
+        };
+
+        container.appendChild(card);
+      }
+    }
+
+    function renderTreatments() {
+      const container = document.getElementById("treatments");
+      const tooltip = document.getElementById("tooltip");
+      container.innerHTML = "";
+      const currentId = state.currentTreatmentId;
+
+      for (const t of treatments) {
+        const card = document.createElement("div");
+        card.className = "treatment-card";
+        if (t.id === currentId) card.classList.add("selected");
+
+        const name = document.createElement("div");
+        name.className = "treatment-name";
+        name.textContent = t.name;
+        card.appendChild(name);
+
+        const note = document.createElement("div");
+        note.className = "treatment-note";
+        note.textContent = t.note;
+        card.appendChild(note);
+
+        card.onclick = () => {
+          if (!state.roleId) return;
+          if (state.currentTreatmentId !== t.id) {
+            state.currentTreatmentId = t.id;
+            state.message =
+              `You commit yourself more fully to ${t.name.toLowerCase()}.\n` +
+              "Word spreads through the city that your practice is changing.";
+            render();
+          }
+        };
+
+        card.addEventListener("mouseenter", () => {
+          tooltip.textContent = treatmentHoverInfo[t.id] || defaultTooltipText;
+        });
+        card.addEventListener("mouseleave", () => {
+          tooltip.textContent = defaultTooltipText;
+        });
+
+        container.appendChild(card);
+      }
+    }
+
+    function renderDoctrinePanel() {
+      const body = document.getElementById("doctrine-body");
+      if (!body) return;
+
+      const t = getCurrentTreatment();
+      const d = getSelectedDistrict();
+
+      let notes = "";
+
+      switch (t.id) {
+        case "herbalism":
+          notes = `Herbs and smoke:\n• Hedgerow simples, apothecary jars, vinegar on the air.\n• In the ${d.name}, people judge you by the scent that clings to your cloak.`;
+          break;
+        case "humors":
+          notes = `Blood and bile:\n• Basins fill, leeches grow fat; some rise steadier, some never rise.\n• In the ${d.name}, they watch your hands more than your prayers.`;
+          break;
+        case "piety":
+          notes = `Relics and petitions:\n• Candles gutter low, lips move ceaselessly; miracles are counted in whispers.\n• In the ${d.name}, people look past you to the nearest altar.`;
+          break;
+        case "segregation":
+          notes = `Shut doors and watched lanes:\n• Sick beds stay behind boards and shutters; food and water pass through cracks.\n• In the ${d.name}, you are known more by the doors you keep closed than by the cures you offer.`;
+          break;
+        default:
+          notes = `You adjust your practice almost by instinct now.\nThe city has learned to watch your movements like weather.`;
+      }
+
+      body.textContent = notes;
+    }
+
+    function render() {
+      renderStats();
+      renderMessage();
+      renderEvent();
+      renderOverlay();
+      renderDistricts();
+      renderTreatments();
+      renderCityHighlight();
+      renderDoctrinePanel();
+
+      const tooltip = document.getElementById("tooltip");
+      if (!tooltip.textContent) tooltip.textContent = defaultTooltipText;
+    }
+
+    function selectRole(roleId) {
+      const role = ROLES[roleId];
+      if (!role || state.roleId) return;
+
+      state.roleId = role.id;
+      state.roleName = role.name;
+      state.roleTraits = role.traits;
+
+      const deltas = role.deltas || {};
+      for (const key in deltas) {
+        if (Object.prototype.hasOwnProperty.call(state, key)) {
+          state[key] += deltas[key];
+        }
+      }
+
+      if (role.startTreatment) state.currentTreatmentId = role.startTreatment;
+      if (role.startDistrict) state.selectedDistrictId = role.startDistrict;
+
+      clampStats();
+      state.whispers = pickWhisper();
+      state.message = role.intro;
+
+      const startOverlay = document.getElementById("start-overlay");
+      if (startOverlay) startOverlay.style.display = "none";
+
+      render();
+    }
+
+    function init() {
+      wireInstructionsUI();
+
+      const tooltip = document.getElementById("tooltip");
+      tooltip.textContent = defaultTooltipText;
+
+      state.whispers = pickWhisper();
+      render();
+
+      document.getElementById("btn-treat").onclick = treatSick;
+      document.getElementById("btn-quarantine").onclick = quarantine;
+      document.getElementById("btn-fires").onclick = burnFires;
+      document.getElementById("btn-procession").onclick = procession;
+      document.getElementById("btn-alms").onclick = almsgiving;
+      document.getElementById("btn-grain").onclick = secureGrain;
+      document.getElementById("btn-tax").onclick = levyTax;
+      document.getElementById("btn-forage").onclick = forageHerbs;
+      document.getElementById("end-day-btn").onclick = advanceDay;
+
+      document.getElementById("btn-event-1").onclick = () => handleEventChoice(1);
+      document.getElementById("btn-event-2").onclick = () => handleEventChoice(2);
+
+      document.querySelectorAll(".role-card").forEach(card => {
+        const roleId = card.getAttribute("data-role");
+        card.addEventListener("click", () => selectRole(roleId));
+      });
+
+      const hoverInfo = {
+        "btn-treat": "Treat the Sick: Spend herbs in the focused district; effects depend strongly on your chosen treatment approach and district.",
+        "btn-quarantine": "Close Doors & Watch Lanes: Tighten patrols and keep households inside; slows spread but fuels unrest and may anger clergy.",
+        "btn-fires": "Burn Aromatic Fires: Order cleansing fires across the city; fear eases, but not everyone trusts smoke.",
+        "btn-procession": "Organize Procession: Please the Church and some layfolk, at the risk of crowded streets.",
+        "btn-alms": "Almsgiving & Charity: Send food and coin into the chosen district; hunger and unrest subside.",
+        "btn-grain": "Bring Grain up the Thames: Import food; steadies unrest but brings travellers and their fleas.",
+        "btn-tax": "Levy Emergency Tax: Squeeze the focused district for coin. High order yields more, but unrest and resentment grow.",
+        "btn-forage": "Send Foraging Parties: Strip gardens and hedgerows for herbs—best from the Outskirts, but the work stirs plague.",
+        "end-day-btn": "End the Day: Let time pass and see what the plague, hunger, and fear have done."
+      };
+
+      Object.keys(hoverInfo).forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener("mouseenter", () => {
+          tooltip.textContent = hoverInfo[id];
+        });
+        el.addEventListener("mouseleave", () => {
+          tooltip.textContent = defaultTooltipText;
+        });
+      });
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
